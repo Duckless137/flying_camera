@@ -12,4 +12,9 @@
 // E in octave 6
 #define LANDED_NOTE 1319
 
+#define PIN_BUTTON 3
+#define PIN_SPEAKER 4
+#define PIN_SONAR_TRIG 7
+#define PIN_SONAR_ECHO 8
+
 #endif // !VARS_HGUARD
