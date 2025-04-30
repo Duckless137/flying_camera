@@ -11,6 +11,8 @@
 #define DESCENT_START_NOTE 131
 // E in octave 6
 #define LANDED_NOTE 1319
+// F in octave 1
+#define ERROR_NOTE 44
 
 #define PIN_BUTTON 3
 #define PIN_SPEAKER 4
