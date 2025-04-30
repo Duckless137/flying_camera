@@ -1,4 +1,4 @@
-void check_calibration()
+void ping(int pitch)
 {
     
 }

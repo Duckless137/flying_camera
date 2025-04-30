@@ -1,4 +1,3 @@
-void check_calibration()
+void wait_for_altitude(void)
 {
-    
 }
