@@ -19,4 +19,9 @@
 #define PIN_SONAR_TRIG 7
 #define PIN_SONAR_ECHO 8
 
+// As soon as the Arduino detects it's 
+// this far from the ground (in cm), it will
+// have considered itself as landed.  
+#define LANDING_RANGE 1000
+
 #endif // !VARS_HGUARD

@@ -11,7 +11,7 @@ upload: build
 
 build: .PHONY
 	mkdir -p build
-	arduino-cli compile -p $(PORT) --fqbn $(ARDUINO) --build-path build
+	arduino-cli compile -p $(PORT) --fqbn $(ARDUINO) --build-path build --libraries libs --build-property "build.extra_flags=-I./includes"
 
 	
 

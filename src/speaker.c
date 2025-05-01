@@ -1,4 +1,0 @@
-void ping(int pitch)
-{
-    
-}
