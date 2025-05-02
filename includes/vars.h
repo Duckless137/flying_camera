@@ -7,13 +7,8 @@
 #ifndef VARS_HGUARD
 #define VARS_HGUARD
 
-// C in octave 3
-#define DESCENT_START_NOTE 131
-// E in octave 6
-#define LANDED_NOTE 1319
-// F in octave 1
-#define ERROR_NOTE 44
-
+// Here I've defined the pins 
+// our parts are on.
 #define PIN_BUTTON 3
 #define PIN_SPEAKER 4
 #define PIN_SONAR_TRIG 7
@@ -23,5 +18,16 @@
 // this far from the ground (in cm), it will
 // have considered itself as landed.  
 #define LANDING_RANGE 1000
+
+// Our target altitude, measured by
+// pressure, in hPa.
+#define TARGET_ALTITUDE 1013.25
+
+// C in octave 3
+#define DESCENT_START_NOTE 131
+// E in octave 6
+#define LANDED_NOTE 1319
+// F in octave 1
+#define ERROR_NOTE 44
 
 #endif // !VARS_HGUARD

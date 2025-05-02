@@ -1,17 +1,75 @@
 ARDUINO = arduino:avr:uno
 PORT = /dev/ttyACM0
 
-LIBS = $(shell ls src/*.c)
-OBJS = $(patsubst %, $(shell pwd)/build/sketch/%.o, $(LIBS))
+BIN_PATH=/usr/bin
+HW_PATH=/usr/share/arduino/hardware/arduino/avr
+TOOLS_PATH=/usr/share/arduino/hardware/tools
 
-.PHONY: 
+FLAGS_ASM=-c -g -x assembler-with-cpp -flto -MMD -mmcu=atmega328p -DF_CPU=16000000L -DARDUINO=10819 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR
+FLAGS_GPP=-c -g -Os -w -std=gnu++11 -fpermissive -fno-exceptions -ffunction-sections -fdata-sections -fno-threadsafe-statics -Wno-error=narrowing -MMD -flto -mmcu=atmega328p -DF_CPU=16000000L -DARDUINO=10819 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR -I${HW_PATH}/cores/arduino -I${HW_PATH}/variants/standard -I./includes
+FLAGS_GCC=-c -g -Os -w -std=gnu11 -ffunction-sections -fdata-sections -MMD -flto -fno-fat-lto-objects -mmcu=atmega328p -DF_CPU=16000000L -DARDUINO=10819 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR -I${HW_PATH}/cores/arduino -I${HW_PATH}/variants/standard -I./includes
 
-upload: build
-	arduino-cli upload -p $(PORT) --fqbn $(ARDUINO) build
+CORES_DIR=${HW_PATH}/cores/arduino
+AVR_GCC=${BIN_PATH}/avr-gcc
+AVR_GPP=${BIN_PATH}/avr-g++
+AVR_AR=${BIN_PATH}/avr-gcc-ar
+AVR_OBJCPY=${BIN_PATH}/avr-objcopy
 
-build: .PHONY
-	mkdir -p build
-	arduino-cli compile -p $(PORT) --fqbn $(ARDUINO) --build-path build --libraries libs --build-property "build.extra_flags=-I./includes"
+SKETCH=flying_camera
+
+LIBS=$(shell ls libs/*)
+LIBS_BIN=$(patsubst %,build/bin/%.o,$(LIBS))
+
+# I would prefer to just ls into this directory, but certain files are unnecessary and simply cannot be compiled.
+CORES_CPP=hooks.c wiring.c wiring_pulse.c wiring_pulse.S wiring_digital.c wiring_shift.c wiring_analog.c WInterrupts.c Stream.cpp HardwareSerial.cpp HardwareSerial0.cpp HardwareSerial1.cpp HardwareSerial2.cpp HardwareSerial3.cpp CDC.cpp WString.cpp Print.cpp main.cpp WMath.cpp IPAddress.cpp USBCore.cpp Tone.cpp
+CORES_BIN=$(patsubst %,build/bin/cores/%.o,${CORES_CPP})
+
+
+.PHONY:
+
+dirs:
+	mkdir -p build/bin/cores
+	mkdir -p build/bin/libs
+
+
+include dirs
+
+# Cores building rules
+build/bin/cores/%.S.o: $(CORES_DIR)/%.S
+	${AVR_GCC} $(FLAGS_ASM) $< -o $@
+
+build/bin/cores/%.c.o: $(CORES_DIR)/%.c
+	${AVR_GCC} $(FLAGS_GCC) $< -o $@
+
+build/bin/cores/%.cpp.o: $(CORES_DIR)/%.cpp
+	${AVR_GPP} $(FLAGS_GPP) $< -o $@
+
+
+# Library building rules
+build/bin/libs/%.c.o: libs/%.c
+	${AVR_GCC} $(FLAGS_GCC) $< -o $@
+
+build/bin/libs/%.cpp.o: libs/%.cpp
+	${AVR_GPP} $(FLAGS_GPP) $< -o $@
+
+# Sketch building cores
+build/$(SKETCH).cpp: $(SKETCH).ino
+	rm -f $@
+	cp $^ $@
+
+build/bin/$(SKETCH).o: build/$(SKETCH).cpp
+	${AVR_GPP} $(FLAGS_GPP) $< -o $@
+
+upload:
+	$(AVR_OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0 build/$(SKETCH).elf build/$(SKETCH).eep 
+	$(AVR_OBJCPY) -O ihex -R .eeprom build/$(SKETCH).elf build/$(SKETCH).hex 
+	$(TOOLS_PATH)/avrdude -C$(TOOLS_PATH)/avrdude.conf -v -patmega328p -carduino -P$(PORT) -b115200 -D -Uflash:w:build/$(SKETCH).hex:i
+
+build: $(CORES_BIN) $(LIBS_BIN) build/bin/$(SKETCH).o
+	rm -f build/bin/core.a
+	${AVR_AR} rcs build/bin/core.a $^
+	${AVR_GCC} -Os -Wl,-Map,avr.map,--gc-sections -mmcu=atmega328p -o build/$(SKETCH).elf build/bin/$(SKETCH).o build/bin/core.a -L./build/bin/cores -L./build/bin/libs -lm 
+	# arduino-cli compile -p $(PORT) --fqbn $(ARDUINO) --build-path build --build-property "build.extra_flags=-I./includes" --libraries=build/libraries
 
 	
 

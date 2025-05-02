@@ -1,3 +1,7 @@
+/* This lib came from some dude forked this
+ * from SparksFun.
+ */
+
 #ifndef SFE_BMP180_h
 #define SFE_BMP180_h
 
