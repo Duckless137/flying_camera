@@ -1,5 +1,5 @@
-ARDUINO = arduino:avr:uno
-PORT = /dev/ttyACM0
+ARDUINO=arduino:avr:uno
+PORT=/dev/ttyACM0
 
 BIN_PATH=/usr/bin
 HW_PATH=/usr/share/arduino/hardware/arduino/avr
@@ -20,19 +20,24 @@ SKETCH=flying_camera
 LIBS=$(shell ls libs/*)
 LIBS_BIN=$(patsubst %,build/bin/%.o,$(LIBS))
 
+TESTS=$(shell ls tests/*)
+TESTS_BIN=$(patsubst %,build/bin/%.o,$(TESTS))
+
 # I would prefer to just ls into this directory, but certain files are unnecessary and simply cannot be compiled.
 CORES_CPP=hooks.c wiring.c wiring_pulse.c wiring_pulse.S wiring_digital.c wiring_shift.c wiring_analog.c WInterrupts.c Stream.cpp HardwareSerial.cpp HardwareSerial0.cpp HardwareSerial1.cpp HardwareSerial2.cpp HardwareSerial3.cpp CDC.cpp WString.cpp Print.cpp main.cpp WMath.cpp IPAddress.cpp USBCore.cpp Tone.cpp
 CORES_BIN=$(patsubst %,build/bin/cores/%.o,${CORES_CPP})
 
+SKETCH_OBJ=build/bin/target/$(SKETCH).o
+DEPS=build/bin/deps.a
 
 .PHONY:
 
 dirs:
 	mkdir -p build/bin/cores
 	mkdir -p build/bin/libs
-
-
-include dirs
+	mkdir -p build/bin/tests
+	mkdir -p build/bin/target
+	mkdir -p build/tests
 
 # Cores building rules
 build/bin/cores/%.S.o: $(CORES_DIR)/%.S
@@ -46,10 +51,10 @@ build/bin/cores/%.cpp.o: $(CORES_DIR)/%.cpp
 
 
 # Library building rules
-build/bin/libs/%.c.o: libs/%.c
+build/bin/%.c.o: %.c
 	${AVR_GCC} $(FLAGS_GCC) $< -o $@
 
-build/bin/libs/%.cpp.o: libs/%.cpp
+build/bin/%.cpp.o: %.cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 # Sketch building cores
@@ -57,7 +62,7 @@ build/$(SKETCH).cpp: $(SKETCH).ino
 	rm -f $@
 	cp $^ $@
 
-build/bin/$(SKETCH).o: build/$(SKETCH).cpp
+$(SKETCH_OBJ): build/$(SKETCH).cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 upload:
@@ -65,11 +70,17 @@ upload:
 	$(AVR_OBJCPY) -O ihex -R .eeprom build/$(SKETCH).elf build/$(SKETCH).hex 
 	$(TOOLS_PATH)/avrdude -C$(TOOLS_PATH)/avrdude.conf -v -patmega328p -carduino -P$(PORT) -b115200 -D -Uflash:w:build/$(SKETCH).hex:i
 
-build: $(CORES_BIN) $(LIBS_BIN) build/bin/$(SKETCH).o
-	rm -f build/bin/core.a
-	${AVR_AR} rcs build/bin/core.a $^
-	${AVR_GCC} -Os -Wl,-Map,avr.map,--gc-sections -mmcu=atmega328p -o build/$(SKETCH).elf build/bin/$(SKETCH).o build/bin/core.a -L./build/bin/cores -L./build/bin/libs -lm 
-	# arduino-cli compile -p $(PORT) --fqbn $(ARDUINO) --build-path build --build-property "build.extra_flags=-I./includes" --libraries=build/libraries
 
-	
+$(DEPS): $(CORES_BIN) $(LIBS_BIN) $(SKETCH_OBJ)
+	rm -f $(DEPS)
+	${AVR_AR} rcs $(DEPS) $^
 
+build: dirs $(DEPS)
+	${AVR_GCC} -Os -Wl,-Map,avr.map,--gc-sections -mmcu=atmega328p -o build/$(SKETCH).elf $(SKETCH_OBJ) $(DEPS) -lm 
+
+clean:
+	rm -rf build
+	# Yes, I am one of those people who clears their terminal every 0.2 seconds, how'd you know?
+	clear
+
+build-tests: dirs $(DEPS) $(TESTS_BIN)
