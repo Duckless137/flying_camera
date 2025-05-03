@@ -10,11 +10,6 @@ AVR_OBJCPY=$BIN_PATH/avr-objcopy
 
 DEPS=build/bin/deps.a
 
-if [[ ! -f  "$PORT" ]]; then
-    printf "Port $PORT not found: have you tried \e[3mPLUGGING THE FUCKING ARDUINO IN YOU DUMBASS??\e[0m\n"
-    exit 1
-fi
-
 # I ain't reading all that
 make build-tests > /dev/null
 

@@ -15,7 +15,6 @@ AVR_GPP=${BIN_PATH}/avr-g++
 AVR_AR=${BIN_PATH}/avr-gcc-ar
 AVR_OBJCPY=${BIN_PATH}/avr-objcopy
 
-SKETCH=flying_camera
 
 LIBS=$(shell ls libs/*)
 LIBS_BIN=$(patsubst %,build/bin/%.o,$(LIBS))
@@ -27,7 +26,10 @@ TESTS_BIN=$(patsubst %,build/bin/%.o,$(TESTS))
 CORES_CPP=hooks.c wiring.c wiring_pulse.c wiring_pulse.S wiring_digital.c wiring_shift.c wiring_analog.c WInterrupts.c Stream.cpp HardwareSerial.cpp HardwareSerial0.cpp HardwareSerial1.cpp HardwareSerial2.cpp HardwareSerial3.cpp CDC.cpp WString.cpp Print.cpp main.cpp WMath.cpp IPAddress.cpp USBCore.cpp Tone.cpp
 CORES_BIN=$(patsubst %,build/bin/cores/%.o,${CORES_CPP})
 
+
+SKETCH=flying_camera
 SKETCH_OBJ=build/bin/target/$(SKETCH).o
+SKETCH_OUT=build/out/$(SKETCH)
 DEPS=build/bin/deps.a
 
 .PHONY:
@@ -38,6 +40,7 @@ dirs:
 	mkdir -p build/bin/tests
 	mkdir -p build/bin/target
 	mkdir -p build/tests
+	mkdir -p build/out
 
 # Cores building rules
 build/bin/cores/%.S.o: $(CORES_DIR)/%.S
@@ -58,17 +61,17 @@ build/bin/%.cpp.o: %.cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 # Sketch building cores
-build/$(SKETCH).cpp: $(SKETCH).ino
+build/out/$(SKETCH).cpp: $(SKETCH).ino
 	rm -f $@
 	cp $^ $@
 
-$(SKETCH_OBJ): build/$(SKETCH).cpp
+$(SKETCH_OBJ): build/out/$(SKETCH).cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
-upload:
-	$(AVR_OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0 build/$(SKETCH).elf build/$(SKETCH).eep 
-	$(AVR_OBJCPY) -O ihex -R .eeprom build/$(SKETCH).elf build/$(SKETCH).hex 
-	$(TOOLS_PATH)/avrdude -C$(TOOLS_PATH)/avrdude.conf -v -patmega328p -carduino -P$(PORT) -b115200 -D -Uflash:w:build/$(SKETCH).hex:i
+upload: build
+	$(AVR_OBJCPY) -O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0 $(SKETCH_OUT).elf $(SKETCH_OUT).eep 
+	$(AVR_OBJCPY) -O ihex -R .eeprom $(SKETCH_OUT).elf $(SKETCH_OUT).hex 
+	$(TOOLS_PATH)/avrdude -C$(TOOLS_PATH)/avrdude.conf -v -patmega328p -carduino -P$(PORT) -b115200 -D -Uflash:w:$(SKETCH_OUT).hex:i
 
 
 $(DEPS): $(CORES_BIN) $(LIBS_BIN) $(SKETCH_OBJ)
@@ -76,7 +79,7 @@ $(DEPS): $(CORES_BIN) $(LIBS_BIN) $(SKETCH_OBJ)
 	${AVR_AR} rcs $(DEPS) $^
 
 build: dirs $(DEPS)
-	${AVR_GCC} -Os -Wl,-Map,avr.map,--gc-sections -mmcu=atmega328p -o build/$(SKETCH).elf $(SKETCH_OBJ) $(DEPS) -lm 
+	${AVR_GCC} -Os -Wl,-Map,avr.map,--gc-sections -mmcu=atmega328p -o $(SKETCH_OUT).elf $(SKETCH_OBJ) $(DEPS) -lm 
 
 clean:
 	rm -rf build
