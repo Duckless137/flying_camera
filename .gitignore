@@ -1,4 +1,5 @@
 /build
+avr.map
 
 # Yeah I use vscode I'm not a real programmer :(
 /.vscode
