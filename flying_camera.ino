@@ -147,7 +147,7 @@ double ping_sonar(void) {
   delayMicroseconds(10);
   digitalWrite(PIN_SONAR_TRIG,LOW);
   
-  int duration = pulseIn(PIN_SONAR_ECHO, HIGH, 100UL);
+  int duration = pulseIn(PIN_SONAR_ECHO, HIGH);
   
   // Distance is in cm
   double distance = duration * 0.0343 / 2;
