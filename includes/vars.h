@@ -13,6 +13,7 @@
 #define PIN_SPEAKER 4
 #define PIN_SONAR_TRIG 7
 #define PIN_SONAR_ECHO 8
+#define PIN_SERVO 9
 
 // As soon as the Arduino detects it's 
 // this far from the ground (in cm), it will

@@ -2,7 +2,7 @@
 #include <Wire.h>
 #include <SFE_BMP180.h>
 #include <vars.h>
-
+#include <Servo.h>
 // Function & class symbols
 void check_calibration(void);
 void wait_for_button(void);
@@ -11,7 +11,7 @@ void ping(int pitch);
 void start_photo_taking(void);
 void wait_for_landing(void);
 SFE_BMP180 barometer;
-
+Servo camera_pusher_2000;
 
 // ---MAIN CODE---
 void setup()
@@ -22,7 +22,10 @@ void setup()
     ping(ERROR_NOTE);
     while (1); // Ultimate dilly dally
   }
-  
+ 
+  // Attach servo MOTOR
+  camera_pusher_2000.attach(PIN_SERVO);
+
   // Set pin modes
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   pinMode(PIN_SPEAKER, OUTPUT);
@@ -109,7 +112,15 @@ void wait_for_button(void)
 // ---SERVO MOTOR CODE---
 void start_photo_taking(void)
 {
-    
+  // There's no multithreading
+  // so this is a bit of a bandaid
+  // patch, but whatever.
+  camera_pusher_2000.write(0);
+  check_calibration();
+  delay(500);
+  camera_pusher_2000.write(180);
+  check_calibration();
+  delay(500);
 }
 
 
