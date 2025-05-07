@@ -32,13 +32,15 @@ void setup()
 
   pinMode(PIN_SONAR_TRIG, OUTPUT);
   pinMode(PIN_SONAR_ECHO, INPUT);
-
+  
+  // Make sure the LED is off
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
 }
 
 void loop()
 {
+  // Run some automatic checks
   check_calibration();
   wait_for_button();
   wait_for_altitude();
@@ -167,9 +169,12 @@ double ping_sonar(void) {
 // ---SPEAKER CODE---
 void ping(int pitch)
 {
-    digitalWrite(PIN_BUTTON, HIGH);
-    tone(PIN_SPEAKER, pitch, 150);
-    delay(160);                
-  	tone(PIN_SPEAKER, pitch, 150);
-    delay(800);
+  // Turn on the LED
+  digitalWrite(PIN_BUTTON, HIGH);
+  
+  // Play lil beep :-)
+  tone(PIN_SPEAKER, pitch, 150);
+  delay(160);                
+  tone(PIN_SPEAKER, pitch, 150);
+  delay(800);
 }
