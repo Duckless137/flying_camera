@@ -28,7 +28,7 @@ CORES_BIN=$(patsubst %,build/bin/cores/%.o,${CORES_CPP})
 
 
 SKETCH=flying_camera
-SKETCH_OBJ=build/bin/target/$(SKETCH).o
+SKETCH_OBJ=build/bin/target/main.o
 SKETCH_OUT=build/out/$(SKETCH)
 DEPS=build/bin/deps.a
 
@@ -61,7 +61,7 @@ build/bin/%.cpp.o: %.cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 
-$(SKETCH_OBJ): $(SKETCH).cpp
+$(SKETCH_OBJ): main.cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 upload: build
