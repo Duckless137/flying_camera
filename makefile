@@ -60,12 +60,8 @@ build/bin/%.c.o: %.c
 build/bin/%.cpp.o: %.cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
-# Sketch building cores
-build/out/$(SKETCH).cpp: $(SKETCH).ino
-	rm -f $@
-	cp $^ $@
 
-$(SKETCH_OBJ): build/out/$(SKETCH).cpp
+$(SKETCH_OBJ): $(SKETCH).cpp
 	${AVR_GPP} $(FLAGS_GPP) $< -o $@
 
 upload: build

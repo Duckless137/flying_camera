@@ -1,5 +1,8 @@
 /build
 avr.map
 
-# Yeah I use vscode I'm not a real programmer :(
+# No, clangd is NOT my compiler, just a linter, I use gcc like a normal person and you should too
+.clangd
+
+# Yeah I use vscode sometimes sue me
 /.vscode

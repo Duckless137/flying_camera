@@ -9,7 +9,7 @@ void wait_for_button(void);
 void wait_for_altitude(void);
 void ping(int pitch);
 void start_photo_taking(void);
-void wait_for_landing(void);
+double ping_sonar(void);
 SFE_BMP180 barometer;
 Servo camera_pusher_2000;
 
@@ -25,13 +25,16 @@ void setup()
  
   // Attach servo MOTOR
   camera_pusher_2000.attach(PIN_SERVO);
-
+  
   // Set pin modes
   pinMode(PIN_BUTTON, INPUT_PULLUP);
-  pinMode(PIN_SPEAKER, OUTPUT);
-  
+  pinMode(PIN_SPEAKER, OUTPUT); 
+
   pinMode(PIN_SONAR_TRIG, OUTPUT);
   pinMode(PIN_SONAR_ECHO, INPUT);
+
+  pinMode(PIN_LED, OUTPUT);
+  digitalWrite(PIN_LED, LOW);
 }
 
 void loop()
@@ -41,8 +44,8 @@ void loop()
   wait_for_altitude();
   ping(DESCENT_START_NOTE);
   start_photo_taking();
-  wait_for_landing();
-  while (1) ping(LANDED_NOTE); // Hehe this might get annoying
+  while (digitalRead(PIN_BUTTON) == HIGH) ping(LANDED_NOTE); // Hehe this might get annoying
+  while (1); // The button press is just to stop the pinging. After this, the user has to reset the Arduino
 }
 
 
@@ -112,15 +115,15 @@ void wait_for_button(void)
 // ---SERVO MOTOR CODE---
 void start_photo_taking(void)
 {
-  // There's no multithreading
-  // so this is a bit of a bandaid
-  // patch, but whatever.
+  // There's no multithreading :(
   camera_pusher_2000.write(0);
   check_calibration();
-  delay(500);
-  camera_pusher_2000.write(180);
-  check_calibration();
-  delay(500);
+  delay(200);
+  camera_pusher_2000.write(45);
+  
+  if (ping_sonar() < LANDING_RANGE) return;
+
+  delay(200);
 }
 
 
@@ -128,9 +131,6 @@ void start_photo_taking(void)
 
 
 // ---SONAR CODE---
-void ping(int pitch);
-static double ping_sonar(void);
-
 void check_calibration(void)
 {
     double should_be_zero = ping_sonar();
@@ -144,11 +144,6 @@ void check_calibration(void)
         while (1); // We really can't continue the program if this fails, so this just stops everything.
     }
 }
-
-void wait_for_landing(void) {
-    while (ping_sonar() > LANDING_RANGE); // Dilly dally
-}
-
 
 double ping_sonar(void) {
   // This has to happen for some reason...
@@ -172,8 +167,9 @@ double ping_sonar(void) {
 // ---SPEAKER CODE---
 void ping(int pitch)
 {
+    digitalWrite(PIN_BUTTON, HIGH);
     tone(PIN_SPEAKER, pitch, 150);
     delay(160);                
-	tone(PIN_SPEAKER, pitch, 150);
+  	tone(PIN_SPEAKER, pitch, 150);
     delay(800);
 }
