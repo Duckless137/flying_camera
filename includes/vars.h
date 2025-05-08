@@ -9,11 +9,11 @@
 
 // Here I've defined the pins 
 // our parts are on.
-#define PIN_BUTTON 3
-#define PIN_SPEAKER 4
-#define PIN_LED 5
-#define PIN_SONAR_TRIG 8
-#define PIN_SONAR_ECHO 9
+#define PIN_BUTTON 13
+#define PIN_SPEAKER 12
+#define PIN_LED 11
+#define PIN_SONAR_TRIG 2
+#define PIN_SONAR_ECHO 3
 #define PIN_SERVO 10
 
 // As soon as the Arduino detects it's 
