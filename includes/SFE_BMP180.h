@@ -1,5 +1,5 @@
-/* This lib came from some dude forked this
- * from SparksFun.
+/* This lib came from some dude who
+ * forked this from SparksFun.
  */
 
 #ifndef SFE_BMP180_h
