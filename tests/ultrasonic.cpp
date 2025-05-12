@@ -1,9 +1,10 @@
+#include "vars.h"
 #include <Arduino.h>
 
 
 void setup() {
-  pinMode(12, OUTPUT);
-  pinMode(13, INPUT);
+  pinMode(PIN_SONAR_TRIG, OUTPUT);
+  pinMode(PIN_SONAR_ECHO, INPUT);
   
   Serial.begin(9600);
 }
@@ -18,13 +19,13 @@ void loop() {
 
 double ping_sonar(void) {
   // This has to happen for some reason...
-  digitalWrite(12,LOW);
+  digitalWrite(PIN_SONAR_TRIG,LOW);
   delayMicroseconds(2);
-  digitalWrite(12,HIGH);
+  digitalWrite(PIN_SONAR_TRIG,HIGH);
   delayMicroseconds(10);
-  digitalWrite(12,LOW);
+  digitalWrite(PIN_SONAR_TRIG,LOW);
   
-  int duration = pulseIn(13, HIGH);
+  int duration = pulseIn(PIN_SONAR_ECHO, HIGH);
   
   // Distance is in cm
   double distance = duration * 0.0343 / 2;
