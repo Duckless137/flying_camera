@@ -21,9 +21,8 @@
 // have considered itself as landed.  
 #define LANDING_RANGE 1000
 
-// Our target altitude, measured by
-// pressure, in hPa.
-#define TARGET_ALTITUDE 1013.25
+
+#define TARGET_ALTITUDE 90.0 // Target altitude in meters above sea level
 
 // C in octave 3
 #define DESCENT_START_NOTE 131
@@ -31,5 +30,9 @@
 #define LANDED_NOTE 1319
 // F in octave 1
 #define ERROR_NOTE 44
+
+// Number from 0-3 determining
+// accuracy of altimiter
+#define PRESSURE_OVERSAMPLING 2
 
 #endif // !VARS_HGUARD

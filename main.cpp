@@ -1,31 +1,46 @@
+#include "HardwareSerial.h"
 #include <Arduino.h>
 #include <Wire.h>
 #include <SFE_BMP180.h>
 #include <vars.h>
 #include <Servo.h>
+#include <logging.h>
+
 // Function & class symbols
 void check_calibration(void);
 void wait_for_button(void);
 void wait_for_altitude(void);
+char start_readings(void);
 void ping(int pitch);
 void start_photo_taking(void);
 double ping_sonar(void);
 SFE_BMP180 barometer;
 Servo camera_pusher_2000;
+char status;
+double temp, pressure, starting_point_pressure;
+double altitude = 0.0;
 
 // ---MAIN CODE---
 void setup()
 {
-  if (!barometer.begin())
-  {
-    // Barometer failed - let the user know
-    ping(ERROR_NOTE);
-    while (1); // Ultimate dilly dally
-  }
+  Serial.begin(9600);
+  LOG_INFO("Serial started!");
+
+  LOG_TASK("Starting barometer");
+  CHECK_STATUS(barometer.begin(), "Failed to start barometer!");
+ 
+  LOG_TASK("Getting initial pressure readings");
+  CHECK_STATUS(start_readings(), "Failed to get inital pressure readings!");
  
   // Attach servo MOTOR
-  camera_pusher_2000.attach(PIN_SERVO);
-  
+  LOG_TASK("Attaching servo_motor");
+  CHECK_STATUS(camera_pusher_2000.attach(PIN_SERVO), "Failed to attach servo motor!");
+ 
+
+  // This operation is infalible, BUT the
+  // LOG_TASK method looks cool as fuck so...
+  LOG_TASK("Setting pins");
+
   // Set pin modes
   pinMode(PIN_BUTTON, INPUT_PULLUP);
   pinMode(PIN_SPEAKER, OUTPUT); 
@@ -36,6 +51,9 @@ void setup()
   // Make sure the LED is off
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
+
+  LOG_TASK_SUCCESS;
+  LOG_INFO("STARTING...");
 }
 
 void loop()
@@ -55,11 +73,11 @@ void loop()
 
 
 // ---ALTIMITER CODE---
-char status;
-double temp;
-double pressure;
 double get_altitude(void);
 
+// NOTE:
+// A4 -> SCL
+// A5 -> SDA
 void wait_for_altitude(void)
 {
   do 
@@ -70,32 +88,45 @@ void wait_for_altitude(void)
   
 }
 
+char start_readings(void)
+{ 
+  status = barometer.startTemperature();
+  if (!status) return 0.0;
+  delay(status);
+  status = barometer.getTemperature(temp);
+  if (!status) return 0.0;
+  
+  status = barometer.startPressure(PRESSURE_OVERSAMPLING);
+  if (!status) return 0.0;
+  delay(status);
+  status = barometer.getPressure(starting_point_pressure, temp);
+  if (!status) return 0.0;
+  
+  return 1.0;
+}
+
 double get_altitude(void)
 {
   status = barometer.startTemperature();
-  if (status)
-  {
-    // According to the library, the `startTemperature` method
-    // returns an ammount of time to wait... for some reason.
-    delay(status);
+  if (!status) return -1.0;
+  // According to the library, the `startTemperature` method
+  // returns an ammount of time to wait... for some reason.
+  delay(status);
 
-    // This actually passes in a pointer to
-    // temp??? C++ is so weird.
-    status = barometer.getTemperature(temp);
-    if (status)
-    {
-      return barometer.getPressure(pressure, temp);
-    }
-  }
-
-  /* If the function gets here before 
-   * returning, it means an error occured.
-   * Not much the user can do about this while 
-   * the device is several meters in the
-   * air, so if measurement fails... just
-   * try again.
-   */
-  return 0;  
+  // This actually passes in a pointer to
+  // temp??? C++ is so weird.
+  status = barometer.getTemperature(temp);
+  if (!status) return -1.0;
+  
+  // Repeat but with pressure
+  status = barometer.startPressure(PRESSURE_OVERSAMPLING);
+  if (!status) return -1.0;
+  delay(status);
+  status = barometer.getPressure(pressure, temp);
+  if (!status) return -1.0;
+      
+  altitude = barometer.altitude(pressure, starting_point_pressure);
+  return altitude;
 }
 
 
