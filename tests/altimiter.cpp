@@ -41,6 +41,7 @@ void loop() {
   delay(200);
 }
 
+
 char start_readings(void)
 { 
   status = barometer.startTemperature();

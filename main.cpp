@@ -20,6 +20,7 @@ char status;
 double temp, pressure, starting_point_pressure;
 double altitude = 0.0;
 
+
 // ---MAIN CODE---
 void setup()
 {

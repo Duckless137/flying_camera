@@ -22,6 +22,7 @@
 #define LANDING_RANGE 1000
 
 
+
 #define TARGET_ALTITUDE 90.0 // Target altitude in meters above sea level
 
 // C in octave 3
