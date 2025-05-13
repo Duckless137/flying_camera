@@ -1,3 +1,5 @@
+#define DEBUG
+
 #include "HardwareSerial.h"
 #include <Arduino.h>
 #include <Wire.h>
@@ -7,12 +9,12 @@
 #include <logging.h>
 
 // Function & class symbols
-void check_calibration(void);
 void wait_for_button(void);
 void wait_for_altitude(void);
-char start_readings(void);
 void ping(int pitch);
 void start_photo_taking(void);
+char check_calibration(void);
+char start_readings(void);
 double ping_sonar(void);
 SFE_BMP180 barometer;
 Servo camera_pusher_2000;
@@ -37,6 +39,12 @@ void setup()
   LOG_TASK("Attaching servo_motor");
   CHECK_STATUS(camera_pusher_2000.attach(PIN_SERVO), "Failed to attach servo motor!");
  
+  // Sets servo motor to correct position, and waits
+  // for it to get there just in case.
+  LOG_TASK("Writing start pos to servo motor");
+  camera_pusher_2000.write(SERVO_START);
+  delay(500);
+  LOG_TASK_SUCCESS;
 
   // This operation is infalible, BUT the
   // LOG_TASK method looks cool as fuck so...
@@ -54,18 +62,32 @@ void setup()
   digitalWrite(PIN_LED, LOW);
 
   LOG_TASK_SUCCESS;
+
+  LOG_TASK("Checking check_calibration");
+  CHECK_STATUS(check_calibration(), "Calibration error!");
+
   LOG_INFO("STARTING...");
 }
 
 void loop()
 {
-  // Run some automatic checks
-  check_calibration();
+  LOG_INFO("Waiting for user...");
   wait_for_button();
+
+  LOG_INFO("--STARTING ASCENT--");
   wait_for_altitude();
+
+  LOG_INFO("--REACHED TARGET ALTITUDE--");
+  LOG_INFO("Pinging...");
   ping(DESCENT_START_NOTE);
+
+  LOG_INFO("Starting photo taking...");
   start_photo_taking();
+
+  LOG_INFO("Landed! Waiting for user input.");
   while (digitalRead(PIN_BUTTON) == HIGH) ping(LANDED_NOTE); // Hehe this might get annoying
+  
+  LOG_INFO("Stopping beeps. Have a great day! (Jk kill yourself)");
   while (1); // The button press is just to stop the pinging. After this, the user has to reset the Arduino
 }
 
@@ -84,24 +106,37 @@ void wait_for_altitude(void)
   do 
   {
     get_altitude();
+
+    #ifdef DEBUG 
+    Serial.print("Tmp: ");
+    Serial.print(temp);
+    Serial.print(", prs: ");  
+    Serial.print(pressure);
+    Serial.print(", init: ");  
+    Serial.print(starting_point_pressure);
+    Serial.print(", alt: ");  
+    Serial.print(altitude);
+    Serial.print(", trgt: ");  
+    Serial.print(TARGET_ALTITUDE);
+    #endif // DEBUG
   }
-  while (temp < TARGET_ALTITUDE);
+  while (altitude > TARGET_ALTITUDE);
   
 }
 
 char start_readings(void)
 { 
   status = barometer.startTemperature();
-  if (!status) return 0.0;
+  if (status == 0) return 0.0;
   delay(status);
   status = barometer.getTemperature(temp);
-  if (!status) return 0.0;
+  if (status == 0) return 0.0;
   
   status = barometer.startPressure(PRESSURE_OVERSAMPLING);
-  if (!status) return 0.0;
+  if (status == 0) return 0.0;
   delay(status);
   status = barometer.getPressure(starting_point_pressure, temp);
-  if (!status) return 0.0;
+  if (status == 0) return 0.0;
   
   return 1.0;
 }
@@ -109,23 +144,27 @@ char start_readings(void)
 double get_altitude(void)
 {
   status = barometer.startTemperature();
-  if (!status) return -1.0;
-  // According to the library, the `startTemperature` method
-  // returns an ammount of time to wait... for some reason.
+  // If this fails... try, try again
+  if (status == 0) return -1.0;
+  // According to the library, the `startTemperature` and `startPressure`
+  // methods return an ammount of time to delay, which is always 5ms.
   delay(status);
 
   // This actually passes in a pointer to
   // temp??? C++ is so weird.
   status = barometer.getTemperature(temp);
-  if (!status) return -1.0;
+  if (status == 0) return -1.0;
   
   // Repeat but with pressure
   status = barometer.startPressure(PRESSURE_OVERSAMPLING);
-  if (!status) return -1.0;
+  if (status == 0) return -1.0;
   delay(status);
   status = barometer.getPressure(pressure, temp);
-  if (!status) return -1.0;
-      
+  // Resisting the urge to just
+  // write a macro for this rn
+  if (status == 0) return -1.0;
+    
+  // This just does some funny math so no status is returned.
   altitude = barometer.altitude(pressure, starting_point_pressure);
   return altitude;
 }
@@ -138,8 +177,8 @@ double get_altitude(void)
 // ---BUTTON CODE---
 void wait_for_button(void)
 {
-   while (!digitalRead(PIN_BUTTON)); // Wait for button to be pressed    
-   while (digitalRead(PIN_BUTTON)); // Wait for button to be let go    
+   while (digitalRead(PIN_BUTTON) == HIGH); // Wait for button to be pressed
+   while (digitalRead(PIN_BUTTON) == LOW); // Wait for button to be let go    
 }
 
 
@@ -149,15 +188,34 @@ void wait_for_button(void)
 // ---SERVO MOTOR CODE---
 void start_photo_taking(void)
 {
-  // There's no multithreading :(
-  camera_pusher_2000.write(0);
-  check_calibration();
-  delay(200);
-  camera_pusher_2000.write(45);
-  
-  if (ping_sonar() < LANDING_RANGE) return;
+  double dist;
+  #ifdef DEBUG
+  size_t count = 0;
+  #endif // DEBUG
+  do {
+    // There's no multithreading :(
+    delay(200);
+    camera_pusher_2000.write(SERVO_START);
+    delay(200);
+    camera_pusher_2000.write(SERVO_END);
 
-  delay(200);
+    dist = ping_sonar();
+    #ifdef DEBUG
+    count++;
+    Serial.print("Cycle ");
+    Serial.print(count);
+    Serial.print(". Dist:");
+    Serial.print(dist);
+    Serial.println("cm");
+    #endif // DEBUG
+
+  } while (dist > LANDING_RANGE);
+
+  #ifdef DEBUG
+  Serial.print("Reached target after ");
+  Serial.print(count);
+  Serial.println(" cycles.");
+  #endif // DEBUG
 }
 
 
@@ -165,18 +223,13 @@ void start_photo_taking(void)
 
 
 // ---SONAR CODE---
-void check_calibration(void)
+char check_calibration(void)
 {
     double should_be_zero = ping_sonar();
     
     // If it's less than 10cm, good enough
-    if (should_be_zero < 10.0)
-    {
-        return;
-    } else {
-        ping(ERROR_NOTE);
-        while (1); // We really can't continue the program if this fails, so this just stops everything.
-    }
+    if (should_be_zero < 10.0) return 1;
+    else return 0;  
 }
 
 double ping_sonar(void) {

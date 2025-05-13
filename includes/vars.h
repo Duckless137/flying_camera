@@ -36,4 +36,7 @@
 // accuracy of altimiter
 #define PRESSURE_OVERSAMPLING 2
 
+
+#define SERVO_START 100
+#define SERVO_END 10
 #endif // !VARS_HGUARD
